@@ -1,0 +1,6 @@
+@Floreria_HostAddress = http://localhost:5188
+
+GET {{Floreria_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
