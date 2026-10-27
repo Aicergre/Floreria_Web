@@ -18,19 +18,106 @@ const PRODUCTOS = [
   { id: 4, nombre: 'Arreglo Floral Mixto', precio: 180, icono: '💐' },
 ];
 
+function Boton({ texto, accion, secundario = false }) {
+  return (
+    <TouchableOpacity
+      style={[styles.boton, secundario && styles.botonSecundario]}
+      onPress={accion}
+    >
+      <Text style={[
+        styles.textoBoton,
+        secundario && styles.textoSecundario
+      ]}>
+        {texto}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 export default function App() {
   const [pantalla, setPantalla] = useState('inicio');
+  const [nombre, setNombre] = useState('');
   const [correo, setCorreo] = useState('');
   const [contrasena, setContrasena] = useState('');
+  const [confirmarContrasena, setConfirmarContrasena] = useState('');
   const [carrito, setCarrito] = useState([]);
   const [pedidos, setPedidos] = useState([]);
 
+  const validarCorreo = (texto) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(texto);
+  };
+
+  const registrarUsuario = () => {
+    if (!nombre.trim() || !correo.trim() ||
+        !contrasena || !confirmarContrasena) {
+      Alert.alert('Error', 'Completa todos los campos.');
+      return;
+    }
+
+    if (nombre.trim().length < 3) {
+      Alert.alert('Error', 'El nombre debe tener al menos 3 caracteres.');
+      return;
+    }
+
+    if (!validarCorreo(correo.trim())) {
+      Alert.alert('Error', 'Ingresa un correo electrónico válido.');
+      return;
+    }
+
+    if (contrasena.length < 8) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 8 caracteres.');
+      return;
+    }
+
+    if (contrasena !== confirmarContrasena) {
+      Alert.alert('Error', 'Las contraseñas no coinciden.');
+      return;
+    }
+
+    Alert.alert(
+      'Validación correcta',
+      'El formulario está correcto. Falta conectar el registro con la API.',
+      [{
+        text: 'Aceptar',
+        onPress: () => {
+          setContrasena('');
+          setConfirmarContrasena('');
+          setPantalla('login');
+        }
+      }]
+    );
+  };
+
+  const iniciarSesion = () => {
+    if (!correo.trim() || !contrasena) {
+      Alert.alert('Error', 'Ingresa tu correo y contraseña.');
+      return;
+    }
+
+    if (!validarCorreo(correo.trim())) {
+      Alert.alert('Error', 'El correo no es válido.');
+      return;
+    }
+
+    Alert.alert(
+      'Modo demostración',
+      'La autenticación estará disponible cuando conectemos la API.',
+      [
+        { text: 'Cancelar' },
+        {
+          text: 'Ver catálogo',
+          onPress: () => setPantalla('catalogo')
+        }
+      ]
+    );
+  };
+
   const agregarCarrito = (producto) => {
     setCarrito((anterior) => {
-      const existe = anterior.find((p) => p.id === producto.id);
+      const existe = anterior.find(p => p.id === producto.id);
 
       if (existe) {
-        return anterior.map((p) =>
+        return anterior.map(p =>
           p.id === producto.id
             ? { ...p, cantidad: p.cantidad + 1 }
             : p
@@ -40,18 +127,18 @@ export default function App() {
       return [...anterior, { ...producto, cantidad: 1 }];
     });
 
-    Alert.alert('Carrito', 'Producto agregado correctamente');
+    Alert.alert('Carrito', 'Producto agregado correctamente.');
   };
 
   const cambiarCantidad = (id, cambio) => {
-    setCarrito((anterior) =>
+    setCarrito(anterior =>
       anterior
-        .map((p) =>
+        .map(p =>
           p.id === id
             ? { ...p, cantidad: p.cantidad + cambio }
             : p
         )
-        .filter((p) => p.cantidad > 0)
+        .filter(p => p.cantidad > 0)
     );
   };
 
@@ -62,40 +149,27 @@ export default function App() {
 
   const confirmarPedido = () => {
     if (carrito.length === 0) {
-      Alert.alert('Aviso', 'Tu carrito está vacío');
+      Alert.alert('Aviso', 'Tu carrito está vacío.');
       return;
     }
 
-    const nuevoPedido = {
+    const pedido = {
       id: Date.now(),
       fecha: new Date().toLocaleDateString(),
-      productos: carrito.map((p) => ({ ...p })),
+      productos: carrito.map(p => ({ ...p })),
       total,
       estado: 'Pendiente',
     };
 
-    setPedidos((anterior) => [nuevoPedido, ...anterior]);
+    setPedidos(anterior => [pedido, ...anterior]);
     setCarrito([]);
     setPantalla('pedidos');
 
-    Alert.alert('Pedido registrado', 'Tu pedido de prueba fue registrado');
+    Alert.alert(
+      'Pedido de prueba',
+      'Pedido registrado temporalmente. Falta conectar la API.'
+    );
   };
-
-  const Boton = ({ texto, accion, secundario = false }) => (
-    <TouchableOpacity
-      style={[styles.boton, secundario && styles.botonSecundario]}
-      onPress={accion}
-    >
-      <Text
-        style={[
-          styles.textoBoton,
-          secundario && styles.textoSecundario,
-        ]}
-      >
-        {texto}
-      </Text>
-    </TouchableOpacity>
-  );
 
   if (pantalla === 'inicio') {
     return (
@@ -104,11 +178,19 @@ export default function App() {
         <View style={styles.centro}>
           <Text style={styles.logo}>🌸</Text>
           <Text style={styles.titulo}>Florería Bella Flor</Text>
-          <Text style={styles.subtitulo}>Flores para cada ocasión</Text>
+          <Text style={styles.subtitulo}>
+            Flores para cada ocasión
+          </Text>
 
           <Boton
             texto="Iniciar sesión"
             accion={() => setPantalla('login')}
+          />
+
+          <Boton
+            texto="Registrarse"
+            secundario
+            accion={() => setPantalla('registro')}
           />
 
           <Boton
@@ -121,12 +203,88 @@ export default function App() {
     );
   }
 
+  if (pantalla === 'registro') {
+    return (
+      <View style={styles.container}>
+        <ScrollView
+          contentContainerStyle={styles.formulario}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.logo}>🌺</Text>
+          <Text style={styles.titulo}>Crear cuenta</Text>
+          <Text style={styles.subtitulo}>
+            Registro de clientes
+          </Text>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Nombre completo"
+            value={nombre}
+            onChangeText={setNombre}
+            autoCapitalize="words"
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Correo electrónico"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={correo}
+            onChangeText={setCorreo}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Contraseña (mínimo 8 caracteres)"
+            secureTextEntry
+            value={contrasena}
+            onChangeText={setContrasena}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Confirmar contraseña"
+            secureTextEntry
+            value={confirmarContrasena}
+            onChangeText={setConfirmarContrasena}
+          />
+
+          <Boton
+            texto="Validar registro"
+            accion={registrarUsuario}
+          />
+
+          <Boton
+            texto="Ya tengo una cuenta"
+            secundario
+            accion={() => setPantalla('login')}
+          />
+
+          <Boton
+            texto="Volver al inicio"
+            secundario
+            accion={() => setPantalla('inicio')}
+          />
+
+          <Text style={styles.aviso}>
+            Registro de demostración. Los datos todavía
+            no se envían al servidor.
+          </Text>
+        </ScrollView>
+      </View>
+    );
+  }
+
   if (pantalla === 'login') {
     return (
       <View style={styles.container}>
         <View style={styles.centro}>
           <Text style={styles.logo}>🌷</Text>
           <Text style={styles.titulo}>Iniciar sesión</Text>
+          <Text style={styles.subtitulo}>
+            Bienvenido a Bella Flor
+          </Text>
 
           <TextInput
             style={styles.input}
@@ -147,7 +305,13 @@ export default function App() {
 
           <Boton
             texto="Ingresar (demostración)"
-            accion={() => setPantalla('catalogo')}
+            accion={iniciarSesion}
+          />
+
+          <Boton
+            texto="Crear cuenta"
+            secundario
+            accion={() => setPantalla('registro')}
           />
 
           <Boton
@@ -157,7 +321,7 @@ export default function App() {
           />
 
           <Text style={styles.aviso}>
-            Login de demostración. Falta conectar la API.
+            Falta conectar la autenticación con la API.
           </Text>
         </View>
       </View>
@@ -169,15 +333,23 @@ export default function App() {
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.lista}>
           <Text style={styles.titulo}>Catálogo de flores</Text>
-          <Text style={styles.subtitulo}>Nuestros arreglos florales</Text>
+          <Text style={styles.subtitulo}>
+            Nuestros arreglos florales
+          </Text>
 
-          {PRODUCTOS.map((producto) => (
+          {PRODUCTOS.map(producto => (
             <View key={producto.id} style={styles.tarjeta}>
-              <Text style={styles.iconoProducto}>{producto.icono}</Text>
+              <Text style={styles.iconoProducto}>
+                {producto.icono}
+              </Text>
+
               <Text style={styles.nombreProducto}>
                 {producto.nombre}
               </Text>
-              <Text style={styles.precio}>Bs {producto.precio}</Text>
+
+              <Text style={styles.precio}>
+                Bs {producto.precio}
+              </Text>
 
               <Boton
                 texto="Agregar al carrito"
@@ -220,10 +392,16 @@ export default function App() {
               Todavía no agregaste productos.
             </Text>
           ) : (
-            carrito.map((p) => (
+            carrito.map(p => (
               <View key={p.id} style={styles.tarjeta}>
-                <Text style={styles.iconoProducto}>{p.icono}</Text>
-                <Text style={styles.nombreProducto}>{p.nombre}</Text>
+                <Text style={styles.iconoProducto}>
+                  {p.icono}
+                </Text>
+
+                <Text style={styles.nombreProducto}>
+                  {p.nombre}
+                </Text>
+
                 <Text style={styles.precio}>
                   Bs {p.precio * p.cantidad}
                 </Text>
@@ -236,7 +414,9 @@ export default function App() {
                     <Text style={styles.textoCantidad}>−</Text>
                   </TouchableOpacity>
 
-                  <Text style={styles.cantidad}>{p.cantidad}</Text>
+                  <Text style={styles.cantidad}>
+                    {p.cantidad}
+                  </Text>
 
                   <TouchableOpacity
                     style={styles.botonCantidad}
@@ -249,7 +429,9 @@ export default function App() {
             ))
           )}
 
-          <Text style={styles.total}>Total: Bs {total}</Text>
+          <Text style={styles.total}>
+            Total: Bs {total}
+          </Text>
 
           <Boton
             texto="Confirmar pedido"
@@ -277,7 +459,7 @@ export default function App() {
               Todavía no tienes pedidos registrados.
             </Text>
           ) : (
-            pedidos.map((pedido) => (
+            pedidos.map(pedido => (
               <View key={pedido.id} style={styles.tarjeta}>
                 <Text style={styles.nombreProducto}>
                   Pedido #{pedido.id}
@@ -287,7 +469,7 @@ export default function App() {
                   Fecha: {pedido.fecha}
                 </Text>
 
-                {pedido.productos.map((p) => (
+                {pedido.productos.map(p => (
                   <Text key={p.id} style={styles.detalle}>
                     {p.nombre} x {p.cantidad}
                   </Text>
@@ -328,8 +510,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 25,
   },
+  formulario: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 25,
+    paddingBottom: 45,
+  },
   logo: {
-    fontSize: 85,
+    fontSize: 75,
     marginBottom: 15,
   },
   titulo: {
